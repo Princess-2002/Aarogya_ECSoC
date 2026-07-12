@@ -166,6 +166,12 @@ Aarogya/
 
 ---
 
+### ❓ FAQ
+
+New here or stuck during setup? Check the [Frequently Asked Questions](./FAQ.md) doc before opening an issue.
+
+---
+
 ### 🤝 Contributing
 
 We welcome contributions! Please follow these steps:
