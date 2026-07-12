@@ -1,3 +1,7 @@
+// Main application entry point. All routes are registered here directly on
+// `app` rather than through routes/authRoutes.js or routes/dashboardRoutes.js —
+// those two files exist in the repo but are never required/mounted, so this
+// file is the single source of truth for routing behavior.
 require("dotenv").config();
 const axios = require("axios");
 const express = require("express");
@@ -27,6 +31,9 @@ app.set("views", path.join(__dirname, "views"));
 app.use(express.static(path.join(__dirname, "public")));
 
 // MongoDB Connection
+// useNewUrlParser/useUnifiedTopology are no-ops on modern Mongoose (>=6) but
+// are kept here to silence deprecation warnings on older driver versions and
+// to be explicit about the intended connection behavior.
 mongoose.connect(process.env.MONGO_URL, {
     useNewUrlParser: true,
     useUnifiedTopology: true,
@@ -34,6 +41,9 @@ mongoose.connect(process.env.MONGO_URL, {
   .catch(err => console.log(err));
 
 // Middleware to Check if User is Logged In
+// The app is server-rendered (EJS), not a JSON API, so on missing/invalid
+// auth we redirect to /login instead of returning a 401 — there's no client
+// side router to hand a status code to.
 const requireAuth = async (req, res, next) => {
     const token = req.cookies.token;
     if (!token) return res.redirect("/login");
@@ -43,12 +53,16 @@ const requireAuth = async (req, res, next) => {
         req.user = await User.findById(decoded.id);
         next();
     } catch (error) {
+        // Token present but invalid/expired: clear it so the redirect loop
+        // doesn't keep bouncing the user off an unusable cookie.
         res.clearCookie("token");
         res.redirect("/login");
     }
 };
 
 // Middleware to Redirect Logged-In Users Away from Login/Signup
+// Prevents an already-authenticated user from re-submitting login/signup
+// forms and landing on a confusing "user already exists" style response.
 const checkLoggedIn = (req, res, next) => {
     const token = req.cookies.token;
     if (token) {
@@ -56,6 +70,8 @@ const checkLoggedIn = (req, res, next) => {
             const decoded = jwt.verify(token, process.env.JWT_SECRET);
             return res.redirect("/dashboard");
         } catch (error) {
+            // Stale/invalid cookie — drop it and let the request fall
+            // through to the login/signup page normally.
             res.clearCookie("token");
         }
     }
@@ -103,6 +119,9 @@ app.post("/login", async (req, res) => {
         const isMatch = await bcrypt.compare(password, user.password);
         if (!isMatch) return res.render("login", { message: "Incorrect password. Try again." });
 
+        // Short-lived token (1h) so a stolen/leaked cookie has a limited
+        // window of use. httpOnly keeps the cookie out of reach of any
+        // injected client-side script (mitigates XSS-based token theft).
         const token = jwt.sign({ id: user._id, role: user.role }, process.env.JWT_SECRET, { expiresIn: "1h" });
         res.cookie("token", token, { httpOnly: true });
         res.redirect("/dashboard");
@@ -152,6 +171,8 @@ app.get("/doctor/:id", requireAuth, async (req, res) => {
 });
 
 // Book Appointment
+// Business rule: only patients book appointments (doctors are the ones being
+// booked), so a doctor account hitting this route is rejected outright.
 app.post("/appointment/:doctorId", requireAuth, async (req, res) => {
     if (req.user.role !== "patient") return res.status(403).send("Only patients can book appointments.");
 
@@ -166,6 +187,11 @@ app.post("/appointment/:doctorId", requireAuth, async (req, res) => {
             doctor: doctorId,
             patient: req.user._id,
             date: new Date(),
+            // NOTE: every appointment is created "Pending" and there is
+            // currently no route that transitions it to Accepted/Rejected —
+            // the doctor accept/reject workflow mentioned in the README is
+            // not yet wired up on the backend (see the commented-out status
+            // column in views/doctorAppointments.ejs).
             status: "Pending",
         });
 
@@ -177,6 +203,9 @@ app.post("/appointment/:doctorId", requireAuth, async (req, res) => {
 });
 
 // Doctor View Appointments
+// Business rule: a doctor may only see their own appointment queue, not
+// every appointment in the system — enforced below via role check plus the
+// `doctor: req.user._id` filter in the query.
 app.get("/view-appointments", requireAuth, async (req, res) => {
     if (req.user.role !== "doctor") return res.status(403).send("Access denied.");
 
@@ -206,6 +235,11 @@ app.get("/healthlinkAI", (req, res) => {
 });
 
 // HealthLink AI Analysis (Fake for Now)
+// This calls a Hugging Face inference endpoint, not OpenAI, but reuses the
+// OPENAI_API_KEY env var as its bearer token. That's almost certainly a
+// naming leftover from copy-pasting the /chat handler below rather than an
+// intentional shared credential — worth a real Hugging Face token/env var if
+// this endpoint becomes more than a prototype.
 app.post("/analyze-health", async (req, res) => {
     const userMessage = req.body.message || "Analyze this health report.";
     try {
@@ -226,6 +260,10 @@ app.get("/ourteam", (req, res) => {
 });
 
 // OpenAI Chatbot (Optional Static Response for Now)
+// Distinct from the rule-based keyword chatbot in public/js/index.js — this
+// route is the only place that talks to a real LLM (OpenAI). Required here
+// rather than at the top of the file so the OPENAI_API_KEY env var is
+// already loaded by dotenv.config() by the time this executes.
 const { OpenAI } = require("openai");
 const openai = new OpenAI({ apiKey: process.env.OPENAI_API_KEY });
 

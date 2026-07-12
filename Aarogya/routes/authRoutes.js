@@ -1,3 +1,9 @@
+// NOTE: this router is not currently `require`d/mounted anywhere in
+// server.js — the live signup/login routes are implemented directly in
+// server.js instead, with a JWT secret pulled from process.env.JWT_SECRET.
+// The hardcoded "your_secret_key" fallback below (unlike server.js) means
+// this file must NOT be wired up as-is; treat it as inactive/reference code
+// until it's updated to use the same env-based secret before mounting it.
 const express = require("express");
 const bcrypt = require("bcryptjs");
 const jwt = require("jsonwebtoken");
