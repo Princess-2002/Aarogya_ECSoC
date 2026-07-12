@@ -145,24 +145,16 @@ http://localhost:5000
 
 ```
 Aarogya/
-├── public/
-│   ├── css/
-│   ├── js/
-│   └── images/
-├── views/
-│   ├── partials/
-│   ├── pages/
-│   └── layouts/
-├── routes/
-├── models/
-├── controllers/
-├── middleware/
-├── config/
-├── utils/
-├── .env
-├── package.json
-└── server.js
+├── models/          # Mongoose schemas (User, Appointment)
+├── public/          # Static assets (css/, js/, img/)
+├── routes/          # Express route modules
+├── views/           # EJS templates
+├── docs/            # Project documentation
+├── server.js        # App entry point
+└── package.json
 ```
+
+For a full breakdown of what each folder/file contains and where to add new code, see [`docs/FOLDER_STRUCTURE.md`](docs/FOLDER_STRUCTURE.md).
 
 ---
 
