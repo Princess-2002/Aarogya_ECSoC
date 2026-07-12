@@ -1,3 +1,9 @@
+// NOTE: like routes/authRoutes.js, this router is not `require`d/mounted in
+// server.js — the live dashboard is server.js's single "/dashboard" route,
+// which branches on role in one handler instead of the split
+// patient/doctor routes below. Also note the hardcoded "your_secret_key"
+// JWT secret here won't match tokens issued by server.js (which signs with
+// process.env.JWT_SECRET), so this file can't be mounted without that fix.
 const express = require("express");
 const jwt = require("jsonwebtoken");
 const User = require("../models/User");

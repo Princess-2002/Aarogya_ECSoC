@@ -1,3 +1,7 @@
+// Purely decorative animated background (Three.js) for the landing page —
+// a rotating extruded medical-cross mesh plus a drifting particle field.
+// No app state or user interaction depends on this; safe to strip/replace
+// without touching any functional behavior.
 const scene = new THREE.Scene();
 const camera = new THREE.PerspectiveCamera(75, window.innerWidth / window.innerHeight, 0.1, 1000);
 const renderer = new THREE.WebGLRenderer({ canvas: document.getElementById('bgCanvas'), alpha: true });

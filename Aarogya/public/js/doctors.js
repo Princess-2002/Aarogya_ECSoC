@@ -20,6 +20,10 @@ document.addEventListener("DOMContentLoaded", async () => {
     }
 });
 
+// Declared on the global scope (not inside the DOMContentLoaded closure
+// above) because it's invoked from an inline `onclick` attribute generated
+// in the template string above — inline handlers can only reach functions
+// that exist on `window`.
 function viewDoctor(doctorId) {
     window.location.href = `/doctor/${doctorId}`; // Redirect to profile page
 }

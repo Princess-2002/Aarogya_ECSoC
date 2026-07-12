@@ -1,4 +1,8 @@
-//
+// Site-wide chat widget. This is a fully client-side, rule-based keyword
+// matcher (lowercased input -> exact-match lookup in `responses`, falling
+// back to a default reply) — it does not call any backend or AI service.
+// It's separate from the /chat route in server.js, which does call a real
+// OpenAI model; don't confuse the two when debugging "the chatbot".
 
 document.addEventListener("DOMContentLoaded", function () {
     const chatToggle = document.getElementById("chatbot-toggle");
@@ -37,6 +41,10 @@ document.addEventListener("DOMContentLoaded", function () {
         }, 1000); // Simulate AI processing delay
     }
 
+    // Exact-string lookup, not NLP/fuzzy matching — the incoming message
+    // must match one of these keys verbatim (after trim + lowercase) or it
+    // falls through to "default". Phrasing variations ("hii", "what's ai")
+    // won't match; extend by adding more literal keys below.
     function getResponse(message) {
         const responses = {
             //Small Talk
