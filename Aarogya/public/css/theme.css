@@ -1,0 +1,231 @@
+:root {
+    color-scheme: dark;
+    --theme-background: #0a192f;
+    --theme-background-gradient: radial-gradient(circle, #0a192f 30%, #1e293b 100%);
+    --theme-surface: #112240;
+    --theme-surface-muted: rgba(255, 255, 255, 0.1);
+    --theme-text: #f8fafc;
+    --theme-text-muted: #ccd6f6;
+    --theme-border: #64ffda;
+    --theme-accent: #64ffda;
+    --theme-accent-hover: #52e0c4;
+    --theme-accent-text: #112240;
+    --theme-input: #0a192f;
+    --theme-footer: rgba(17, 34, 64, 0.8);
+    --theme-focus: #fbbf24;
+}
+
+html[data-theme="light"] {
+    color-scheme: light;
+    --theme-background: #f4f7fb;
+    --theme-background-gradient: linear-gradient(135deg, #f8fbff 0%, #e5eef8 100%);
+    --theme-surface: #ffffff;
+    --theme-surface-muted: #eaf1f8;
+    --theme-text: #172033;
+    --theme-text-muted: #40516b;
+    --theme-border: #087f72;
+    --theme-accent: #087f72;
+    --theme-accent-hover: #06665c;
+    --theme-accent-text: #ffffff;
+    --theme-input: #ffffff;
+    --theme-footer: rgba(255, 255, 255, 0.92);
+    --theme-focus: #9a5b00;
+}
+
+html,
+body {
+    background: var(--theme-background-gradient) !important;
+    color: var(--theme-text) !important;
+}
+
+body,
+.navbar,
+.dashboard-content,
+.appointments-section,
+.doctor-profile,
+.contact-section,
+.team-member,
+.chat-window,
+.chat-input,
+.nav-links,
+.container {
+    transition: background-color 0.2s ease, color 0.2s ease, border-color 0.2s ease;
+}
+
+.navbar,
+.nav-links,
+.dashboard-content,
+.appointments-section,
+.doctor-profile,
+.contact-section,
+.team-member,
+.chat-window,
+.chat-input,
+.container {
+    background: var(--theme-surface) !important;
+    color: var(--theme-text) !important;
+}
+
+.navbar .logo,
+.dashboard h2,
+.dashboard-content h3,
+.appointments-section h2,
+.doctor-profile h2,
+.contact-section h2,
+.team-section h2,
+.team-member h3,
+.doctors-section h2,
+.doctor-card h3 {
+    color: var(--theme-accent) !important;
+}
+
+.navbar a,
+.nav-links a,
+.dashboard p,
+.doctor-profile p,
+.contact-section p,
+.team-section p,
+.team-member p,
+.doctor-card p,
+footer,
+footer p {
+    color: var(--theme-text-muted) !important;
+}
+
+.doctor-card,
+table,
+th,
+td,
+form input,
+form textarea,
+.contact-section input,
+.contact-section textarea,
+.chat-window {
+    border-color: var(--theme-border) !important;
+}
+
+.doctor-card,
+td {
+    background: var(--theme-surface) !important;
+}
+
+form input,
+form textarea,
+.contact-section input,
+.contact-section textarea,
+.chat-input input {
+    background: var(--theme-input) !important;
+    color: var(--theme-text) !important;
+}
+
+body input,
+body select {
+    background: var(--theme-input) !important;
+    color: var(--theme-text) !important;
+    border: 1px solid var(--theme-border);
+}
+
+body button {
+    background: var(--theme-accent);
+    color: var(--theme-accent-text);
+}
+
+html[data-theme="light"] body > section {
+    color: var(--theme-text) !important;
+}
+
+html[data-theme="light"] body > section h1,
+html[data-theme="light"] body > section h2,
+html[data-theme="light"] body > section p {
+    color: var(--theme-text) !important;
+}
+
+.btn,
+form button,
+.contact-section button,
+#chatbot-toggle,
+.chat-input button,
+.chat-header,
+th {
+    background: var(--theme-accent) !important;
+    color: var(--theme-accent-text) !important;
+}
+
+.btn:hover,
+form button:hover,
+.contact-section button:hover,
+#chatbot-toggle:hover,
+.chat-input button:hover {
+    background: var(--theme-accent-hover) !important;
+}
+
+.chat-body {
+    background: var(--theme-input) !important;
+}
+
+.you {
+    background: var(--theme-accent) !important;
+    color: var(--theme-accent-text) !important;
+}
+
+.ai {
+    background: #f7caca !important;
+    color: #231f20 !important;
+}
+
+footer {
+    background: var(--theme-footer) !important;
+}
+
+input::placeholder,
+textarea::placeholder {
+    color: var(--theme-text-muted);
+    opacity: 0.85;
+}
+
+a:focus-visible,
+button:focus-visible,
+input:focus-visible,
+textarea:focus-visible,
+select:focus-visible {
+    outline: 3px solid var(--theme-focus);
+    outline-offset: 2px;
+}
+
+.theme-toggle {
+    border: 1px solid var(--theme-border);
+    border-radius: 999px;
+    background: var(--theme-surface);
+    color: var(--theme-text);
+    cursor: pointer;
+    font: inherit;
+    font-size: 0.9rem;
+    font-weight: 700;
+    padding: 0.45rem 0.8rem;
+    white-space: nowrap;
+    z-index: 1100;
+}
+
+.theme-toggle:hover {
+    background: var(--theme-surface-muted);
+}
+
+.theme-toggle-floating .theme-toggle {
+    position: fixed;
+    top: 1rem;
+    right: 1rem;
+}
+
+header .theme-toggle {
+    position: absolute;
+    top: 1rem;
+    right: 1rem;
+}
+
+@media (max-width: 768px) {
+    .navbar .theme-toggle {
+        position: fixed;
+        top: 0.75rem;
+        right: 3.75rem;
+    }
+}
