@@ -38,6 +38,25 @@ body {
     color: var(--theme-text) !important;
 }
 
+#bgCanvas {
+    z-index: 0;
+}
+
+body > .logo,
+body > footer {
+    z-index: 1;
+}
+
+/* HealthLink AI overlay text must follow the selected theme. */
+body:has(.overlay) .overlay {
+    color: var(--theme-text) !important;
+}
+
+body:has(.overlay) .overlay .subtitle {
+    color: var(--theme-text-muted) !important;
+    opacity: 1;
+}
+
 body,
 .navbar,
 .dashboard-content,
