@@ -322,3 +322,76 @@ header {
     border-radius: 10px;
     color: #ffffff;
     font-size: 1
+
+
+/* ===== VALIDATION STYLES ===== */
+
+/* Error states */
+.form-group input.error,
+.form-group select.error {
+    border-color: #ff6b6b;
+    background: rgba(255, 69, 58, 0.1);
+}
+
+.form-group input.valid,
+.form-group select.valid {
+    border-color: #6bcb77;
+    background: rgba(107, 203, 119, 0.1);
+}
+
+/* Validation error messages */
+.validation-error {
+    color: #ff6b6b;
+    font-size: 0.85rem;
+    margin-top: 5px;
+    min-height: 20px;
+    display: flex;
+    align-items: center;
+    gap: 5px;
+}
+
+.validation-error::before {
+    content: '⚠️';
+    font-size: 0.85rem;
+}
+
+/* Server error messages */
+.server-error {
+    margin-top: 15px;
+    padding: 12px 15px;
+    background: rgba(255, 69, 58, 0.15);
+    border: 1px solid rgba(255, 69, 58, 0.3);
+    border-radius: 10px;
+    color: #ff6b6b;
+}
+
+/* Password requirements checklist */
+.password-requirements {
+    margin-top: 10px;
+    padding: 10px 15px;
+    background: rgba(255, 255, 255, 0.05);
+    border-radius: 8px;
+}
+
+.password-requirements .requirement {
+    font-size: 0.85rem;
+    color: rgba(255, 255, 255, 0.5);
+    margin: 3px 0;
+    transition: color 0.3s ease;
+}
+
+/* Terms checkbox error */
+.terms input.error + label {
+    color: #ff6b6b;
+}
+
+/* ===== RESPONSIVE VALIDATION ===== */
+@media screen and (max-width: 480px) {
+    .validation-error {
+        font-size: 0.75rem;
+    }
+    
+    .password-requirements .requirement {
+        font-size: 0.75rem;
+    }
+}
