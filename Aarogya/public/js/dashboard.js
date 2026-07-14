@@ -164,8 +164,9 @@ document.addEventListener("DOMContentLoaded", function () {
 const menuToggle = document.getElementById("menu-toggle");
 const navLinks = document.getElementById("nav-links");
 
-menuToggle.addEventListener("click", function () {
-    navLinks.classList.toggle("active");
+if (menuToggle && navLinks) {
+    menuToggle.addEventListener("click", function () {
+        navLinks.classList.toggle("active");
 
     // Toggle between hamburger (☰) and close (✖)
     if (navLinks.classList.contains("active")) {
@@ -173,12 +174,13 @@ menuToggle.addEventListener("click", function () {
     } else {
         menuToggle.innerHTML = "&#9776;"; // Hamburger icon
     }
-});
+    });
 
 // Close menu when a link is clicked
-document.querySelectorAll(".nav-links a").forEach(link => {
-    link.addEventListener("click", function () {
-        navLinks.classList.remove("active");
-        menuToggle.innerHTML = "&#9776;"; // Reset to hamburger
+    document.querySelectorAll(".nav-links a").forEach(link => {
+        link.addEventListener("click", function () {
+            navLinks.classList.remove("active");
+            menuToggle.innerHTML = "&#9776;";
+        });
     });
-});
+}
