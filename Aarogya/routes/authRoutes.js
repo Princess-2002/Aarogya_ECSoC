@@ -11,6 +11,7 @@
  * @requires bcryptjs
  * @requires jsonwebtoken
  * @requires ../models/User
+ * @requires ../utils/validation
  * @requires ../utils/errorHandler
  */
 
@@ -18,6 +19,9 @@ const express = require("express");
 const bcrypt = require("bcryptjs");
 const jwt = require("jsonwebtoken");
 const User = require("../models/User");
+
+// Import validation utilities
+const { validateBody, schemas } = require("../utils/validation");
 
 // Import error handling utilities
 const {
@@ -41,6 +45,15 @@ const logger = {
  * USER REGISTRATION ENDPOINT
  * ============================================
  */
+router.post("/signup",
+    validateBody(schemas.signup),
+    asyncHandler(async (req, res) => {
+        const { name, email, password, role } = req.body;
+
+        logger.info('Signup attempt', {
+            email,
+            role,
+            requestId: req.requestId
 router.post("/signup", asyncHandler(async (req, res) => {
     const { name, email, password, role } = req.body;
 
@@ -50,8 +63,44 @@ router.post("/signup", asyncHandler(async (req, res) => {
         throw new ValidationError('All fields are required', {
             fields: ['name', 'email', 'password', 'role']
         });
-    }
 
+        const existingUser = await User.findOne({ email });
+        if (existingUser) {
+            logger.warn('Signup: User already exists', { email });
+            throw new ConflictError('User already exists. Please login.');
+        }
+
+        const hashedPassword = await bcrypt.hash(password, 10);
+
+        const newUser = new User({
+            name,
+            email,
+            password: hashedPassword,
+            role
+        });
+
+        await newUser.save();
+
+        logger.info('Signup: User registered successfully', {
+            userId: newUser._id,
+            email,
+            role
+        });
+
+        res.status(201).json({
+            success: true,
+            status: 201,
+            message: "User registered successfully. Please login.",
+            data: {
+                id: newUser._id,
+                name: newUser.name,
+                email: newUser.email,
+                role: newUser.role
+            },
+            timestamp: new Date().toISOString()
+        });
+    })
+);
     // Check for existing user
     const existingUser = await User.findOne({ email });
     if (existingUser) {
@@ -97,6 +146,14 @@ router.post("/signup", asyncHandler(async (req, res) => {
  * USER LOGIN ENDPOINT
  * ============================================
  */
+router.post("/login",
+    validateBody(schemas.login),
+    asyncHandler(async (req, res) => {
+        const { email, password } = req.body;
+
+        logger.info('Login attempt', {
+            email,
+            requestId: req.requestId
 router.post("/login", asyncHandler(async (req, res) => {
     const { email, password } = req.body;
 
@@ -106,8 +163,51 @@ router.post("/login", asyncHandler(async (req, res) => {
         throw new ValidationError('Email and password are required', {
             fields: ['email', 'password']
         });
-    }
 
+        const user = await User.findOne({ email }).select('+password');
+        if (!user) {
+            logger.warn('Login: User not found', { email });
+            throw new NotFoundError('No account found. Please sign up first.');
+        }
+
+        const isMatch = await bcrypt.compare(password, user.password);
+        if (!isMatch) {
+            logger.warn('Login: Invalid password', { email, userId: user._id });
+            throw new AuthenticationError('Incorrect password. Try again.');
+        }
+
+        const token = jwt.sign(
+            {
+                id: user._id,
+                role: user.role
+            },
+            process.env.JWT_SECRET || "your_secret_key",
+            { expiresIn: "1h" }
+        );
+
+        logger.info('Login: User logged in successfully', {
+            userId: user._id,
+            email,
+            role: user.role
+        });
+
+        res.status(200).json({
+            success: true,
+            status: 200,
+            message: `Login successful! Welcome, ${user.role}`,
+            data: {
+                token,
+                user: {
+                    id: user._id,
+                    name: user.name,
+                    email: user.email,
+                    role: user.role
+                }
+            },
+            timestamp: new Date().toISOString()
+        });
+    })
+);
     // Find user
     const user = await User.findOne({ email }).select('+password');
     if (!user) {
