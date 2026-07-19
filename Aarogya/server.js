@@ -89,6 +89,10 @@ app.use((req, res, next) => {
     next();
 });
 
+// Centralized Request Logger Middleware
+const requestLogger = require("./utils/requestLogger");
+app.use(requestLogger);
+
 // ============================================
 // MIDDLEWARE CONFIGURATION
 // ============================================
@@ -280,17 +284,6 @@ app.post("/signup",
         const { name, email, password, role } = req.body;
         
         logger.info('Signup attempt', {
-app.post("/signup", asyncHandler(async (req, res) => {
-    const { name, email, password, role } = req.body;
-    
-    logger.info('Signup attempt', {
-        email,
-        role,
-        requestId: req.requestId
-    });
-
-    if (!name || !email || !password || !role) {
-        logger.warn('Signup failed: Missing required fields', {
             email,
             role,
             requestId: req.requestId
@@ -308,42 +301,23 @@ app.post("/signup", asyncHandler(async (req, res) => {
         const hashedPassword = await bcrypt.hash(password, 10);
         const newUser = new User({
             name,
-        throw new ValidationError('All fields are required', {
-            fields: ['name', 'email', 'password', 'role']
-        });
-    }
-
-    const existingUser = await User.findOne({ email }).lean();
-    if (existingUser) {
-        logger.warn('Signup failed: User already exists', {
             email,
+            password: hashedPassword,
+            role
+        });
+
+        await newUser.save();
+
+        logger.info('User registered successfully', {
+            userId: newUser._id,
+            email,
+            role,
             requestId: req.requestId
         });
-        throw new ConflictError('User already exists. Please login.');
-    }
-
-    const hashedPassword = await bcrypt.hash(password, 10);
-    const newUser = new User({
-        name,
-        email,
-        password: hashedPassword,
-        role
-    });
-
-    await newUser.save();
 
         res.redirect("/login");
     })
 );
-    logger.info('User registered successfully', {
-        userId: newUser._id,
-        email,
-        role,
-        requestId: req.requestId
-    });
-
-    res.redirect("/login");
-}));
 
 app.get("/login", checkLoggedIn, (req, res) => {
     res.render("login", { message: null });
@@ -353,13 +327,6 @@ app.post("/login",
     validateBody(schemas.login),
     asyncHandler(async (req, res) => {
         const { email, password } = req.body;
-app.post("/login", asyncHandler(async (req, res) => {
-    const { email, password } = req.body;
-
-    logger.info('Login attempt', {
-        email,
-        requestId: req.requestId
-    });
 
         logger.info('Login attempt', {
             email,
@@ -387,58 +354,29 @@ app.post("/login", asyncHandler(async (req, res) => {
             });
             throw new AuthenticationError('Incorrect password. Try again.');
         }
-        throw new ValidationError('Email and password are required', {
-            fields: ['email', 'password']
+
+        const token = jwt.sign(
+            { id: user._id, role: user.role },
+            process.env.JWT_SECRET,
+            { expiresIn: "1h" }
+        );
+
+        res.cookie("token", token, {
+            httpOnly: true,
+            secure: process.env.NODE_ENV === 'production',
+            maxAge: 3600000
         });
-    }
 
-    const user = await User.findOne({ email })
-        .select('+password name email role')
-        .lean();
-
-    if (!user) {
-        logger.warn('Login failed: User not found', {
+        logger.info('User logged in successfully', {
+            userId: user._id,
             email,
+            role: user.role,
             requestId: req.requestId
         });
-        throw new NotFoundError('No account found. Please sign up first.');
-    }
 
         res.redirect("/dashboard");
     })
 );
-
-    const isMatch = await bcrypt.compare(password, user.password);
-    if (!isMatch) {
-        logger.warn('Login failed: Invalid password', {
-            email,
-            userId: user._id,
-            requestId: req.requestId
-        });
-        throw new AuthenticationError('Incorrect password. Try again.');
-    }
-
-    const token = jwt.sign(
-        { id: user._id, role: user.role },
-        process.env.JWT_SECRET,
-        { expiresIn: "1h" }
-    );
-
-    res.cookie("token", token, {
-        httpOnly: true,
-        secure: process.env.NODE_ENV === 'production',
-        maxAge: 3600000
-    });
-
-    logger.info('User logged in successfully', {
-        userId: user._id,
-        email,
-        role: user.role,
-        requestId: req.requestId
-    });
-
-    res.redirect("/dashboard");
-}));
 
 app.get("/logout", (req, res) => {
     const userId = req.user?._id;
@@ -459,47 +397,6 @@ app.get("/logout", (req, res) => {
 
 app.get("/dashboard", requireAuth, asyncHandler(async (req, res) => {
     let appointments = [];
-
-    if (req.user.role === "patient") {
-        appointments = await Appointment.aggregate([
-            { $match: { patient: req.user._id } },
-            {
-                $lookup: {
-                    from: "users",
-                    localField: "doctor",
-                    foreignField: "_id",
-                    as: "doctorDetails"
-                }
-            },
-            {
-                $unwind: {
-                    path: "$doctorDetails",
-                    preserveNullAndEmptyArrays: true
-                }
-            },
-            {
-                $project: {
-                    patientName: 1,
-                    patientAge: 1,
-                    symptoms: 1,
-                    date: 1,
-                    status: 1,
-                    "doctorName": "$doctorDetails.name",
-                    "doctorSpecialization": "$doctorDetails.specialization"
-                }
-            },
-            { $sort: { date: -1 } },
-            { $limit: 50 }
-        ]);
-    }
-
-    logger.debug('Dashboard loaded', {
-        userId: req.user._id,
-        role: req.user.role,
-        appointmentCount: appointments.length,
-        requestId: req.requestId
-    });
-
 
     if (req.user.role === "patient") {
         appointments = await Appointment.aggregate([
@@ -618,18 +515,6 @@ app.post("/appointment/:doctorId",
             });
             throw new AuthorizationError('Only patients can book appointments');
         }
-app.post("/appointment/:doctorId", requireAuth, asyncHandler(async (req, res) => {
-    if (req.user.role !== "patient") {
-        logger.warn('Non-patient tried to book appointment', {
-            userId: req.user._id,
-            role: req.user.role,
-            requestId: req.requestId
-        });
-        throw new AuthorizationError('Only patients can book appointments');
-    }
-
-    const { patientName, patientAge, symptoms } = req.body;
-    const doctorId = req.params.doctorId;
 
         const { patientName, patientAge, symptoms } = req.body;
         const doctorId = req.params.doctorId;
@@ -675,55 +560,6 @@ app.post("/appointment/:doctorId", requireAuth, asyncHandler(async (req, res) =>
         res.redirect("/dashboard");
     })
 );
-
-        throw new ValidationError('All fields are required', {
-            fields: ['patientName', 'patientAge', 'symptoms']
-        });
-    }
-
-    if (patientAge < 0 || patientAge > 150) {
-        logger.warn('Appointment booking failed: Invalid age', {
-            patientId: req.user._id,
-            age: patientAge,
-            requestId: req.requestId
-        });
-        throw new ValidationError('Please enter a valid age between 0 and 150');
-    }
-
-    const doctor = await User.findById(doctorId)
-        .select('_id role')
-        .lean();
-
-    if (!doctor || doctor.role !== "doctor") {
-        logger.warn('Appointment booking failed: Invalid doctor', {
-            doctorId,
-            patientId: req.user._id,
-            requestId: req.requestId
-        });
-        throw new NotFoundError('Doctor not found');
-    }
-
-    const appointment = new Appointment({
-        patientName,
-        patientAge: parseInt(patientAge),
-        symptoms,
-        doctor: doctorId,
-        patient: req.user._id,
-        date: new Date(),
-        status: "Pending",
-    });
-
-    await appointment.save();
-
-    logger.info('Appointment booked successfully', {
-        appointmentId: appointment._id,
-        patientId: req.user._id,
-        doctorId,
-        requestId: req.requestId
-    });
-
-    res.redirect("/dashboard");
-}));
 
 app.get("/view-appointments", requireAuth, asyncHandler(async (req, res) => {
     if (req.user.role !== "doctor") {
@@ -801,24 +637,6 @@ app.post("/contact",
         res.send("Message received! We will get back to you soon.");
     })
 );
-app.post("/contact", asyncHandler(async (req, res) => {
-    const { name, email, message } = req.body;
-
-    if (!name || !email || !message) {
-        throw new ValidationError('All fields are required', {
-            fields: ['name', 'email', 'message']
-        });
-    }
-
-    logger.info('New contact message', {
-        name,
-        email,
-        messageLength: message.length,
-        requestId: req.requestId
-    });
-
-    res.send("Message received! We will get back to you soon.");
-}));
 
 // ============================================
 // AI & HEALTH ROUTES
@@ -832,25 +650,6 @@ app.post("/analyze-health",
     validateBody(schemas.healthAnalysis),
     asyncHandler(async (req, res) => {
         const userMessage = req.body.message || "Analyze this health report.";
-app.post("/analyze-health", asyncHandler(async (req, res) => {
-    const userMessage = req.body.message || "Analyze this health report.";
-
-    logger.info('Health analysis request', {
-        messageLength: userMessage.length,
-        requestId: req.requestId
-    });
-
-    try {
-        const response = await axios.post(
-            "https://api-inference.huggingface.co/models/mistralai/Mistral-7B-Instruct-v0.1",
-            { inputs: userMessage },
-            {
-                headers: {
-                    Authorization: `Bearer ${process.env.OPENAI_API_KEY}`
-                },
-                timeout: 30000
-            }
-        );
 
         logger.info('Health analysis request', {
             messageLength: userMessage.length,
@@ -886,17 +685,6 @@ app.post("/analyze-health", asyncHandler(async (req, res) => {
         }
     })
 );
-        res.json({
-            reply: response.data[0]?.generated_text || "No response from AI."
-        });
-    } catch (error) {
-        logger.error('Health analysis error', {
-            error: error.message,
-            requestId: req.requestId
-        });
-        throw new ExternalServiceError('AI service temporarily unavailable', 'HuggingFace');
-    }
-}));
 
 // ============================================
 // TEAM ROUTES
@@ -924,13 +712,6 @@ app.post("/chat",
     asyncHandler(async (req, res) => {
         const userMessage = req.body.message;
         const userId = req.user?._id || req.ip;
-app.post("/chat", asyncHandler(async (req, res) => {
-    const userMessage = req.body.message;
-    const userId = req.user?._id || req.ip;
-
-    if (!userMessage) {
-        throw new ValidationError('Please provide a message');
-    }
 
         const userRate = chatRateLimiter.get(userId) || { count: 0, timestamp: Date.now() };
         if (Date.now() - userRate.timestamp > 60000) {
@@ -964,32 +745,6 @@ app.post("/chat", asyncHandler(async (req, res) => {
                 max_tokens: 150,
                 temperature: 0.7,
             });
-    if (userRate.count >= 10) {
-        logger.warn('Chat rate limit exceeded', {
-            userId,
-            requestId: req.requestId
-        });
-        return res.status(429).json({
-            success: false,
-            status: 429,
-            message: "Rate limit exceeded. Please try again later.",
-            timestamp: new Date().toISOString()
-        });
-    }
-
-    userRate.count++;
-    chatRateLimiter.set(userId, userRate);
-
-    try {
-        const response = await openai.chat.completions.create({
-            model: "gpt-3.5-turbo",
-            messages: [
-                { role: "system", content: "You are a helpful healthcare assistant." },
-                { role: "user", content: userMessage }
-            ],
-            max_tokens: 150,
-            temperature: 0.7,
-        });
 
             logger.debug('Chat response successful', {
                 userId,
@@ -1014,21 +769,6 @@ app.post("/chat", asyncHandler(async (req, res) => {
         }
     })
 );
-        res.json({
-            success: true,
-            reply: response.choices[0].message.content,
-            timestamp: new Date().toISOString()
-        });
-    } catch (error) {
-        logger.error('Chat error', {
-            error: error.message,
-            stack: error.stack,
-            userId,
-            requestId: req.requestId
-        });
-        throw new ExternalServiceError('Unable to process your request. Please try again.', 'OpenAI');
-    }
-}));
 
 // ============================================
 // HEALTH CHECK ENDPOINT
@@ -1054,7 +794,6 @@ app.get("/health", (req, res) => {
 // NOT FOUND & ERROR HANDLING
 // ============================================
 
-app.use(notFoundHandler);
 // 404 Not Found Handler
 app.use(notFoundHandler);
 
